@@ -158,15 +158,16 @@ function getCSSSelector(element) {
 
 function blockElement(element) {
     const selector = getCSSSelector(element);
+    const hostname = window.location.hostname;
     browser.runtime.sendMessage({
         command: "BlockElement",
-        elementDetails: { selector }
+        elementDetails: { selector, hostname }
     }).then((response) => {
         if (response.result === "success") {
             element.remove();
             disableBlockingMode();
             showToast('Element blocked successfully!');
-            console.log('Element blocked successfully:', selector);
+            console.log('Element blocked successfully:', selector, 'on', hostname);
         } else {
             console.error('Failed to block element:', response);
         }

@@ -22,7 +22,6 @@ function generateRules(blocklist, trackers, usePredefinedBlocklist, usePredefine
   let rules = [];
   let ruleId = 1;
 
-  // Domain blocklist rules
   if (usePredefinedBlocklist) {
       blocklist = [...new Set([...blocklist, ...predefinedBlocklist])];
   }
@@ -37,7 +36,6 @@ function generateRules(blocklist, trackers, usePredefinedBlocklist, usePredefine
       }
   });
 
-  // Tracker blocklist rules
   if (usePredefinedTrackers) {
       trackers = [...new Set([...trackers, ...predefinedTrackers.map(t => t.domain)])];
   }
@@ -58,8 +56,8 @@ function generateRules(blocklist, trackers, usePredefinedBlocklist, usePredefine
 browser.storage.local.get(['blocklist', 'trackerBlocklist', 'usePredefinedBlocklist', 'usePredefinedTrackers']).then((result) => {
   const blocklist = result.blocklist || [];
   const trackerBlocklist = result.trackerBlocklist || [];
-  const usePredefinedBlocklist = result.usePredefinedBlocklist !== false; // Default to true
-  const usePredefinedTrackers = result.usePredefinedTrackers !== false; // Default to true
+  const usePredefinedBlocklist = result.usePredefinedBlocklist !== false;
+  const usePredefinedTrackers = result.usePredefinedTrackers !== false;
   const rules = generateRules(blocklist, trackerBlocklist, usePredefinedBlocklist, usePredefinedTrackers);
   browser.declarativeNetRequest.updateDynamicRules({
       addRules: rules,

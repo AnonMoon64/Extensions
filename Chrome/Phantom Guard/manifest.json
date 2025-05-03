@@ -3,8 +3,6 @@
     "name": "PhantomGuard",
     "version": "2.0",
     "description": "Blocks unwanted domains, trackers, and web elements for enhanced privacy.",
-    "author": "Atomic",
-    "homepage_url": "https://github.com/AnonMoon64",
     "permissions": ["storage", "activeTab", "declarativeNetRequest", "scripting"],
     "icons": {
         "16": "icon16.png",
@@ -15,7 +13,7 @@
         "default_popup": "popup.html"
     },
     "background": {
-        "scripts": ["background.js"]
+        "service_worker": "background.js"
     },
     "options_ui": {
         "page": "options.html",
@@ -24,12 +22,13 @@
     "content_scripts": [
         {
             "matches": ["<all_urls>"],
-            "js": ["removeElements.js", "contentScript.js"]
+            "js": ["browser-polyfill.min.js", "removeElements.js", "contentScript.js"]
         }
     ],
-    "browser_specific_settings": {
-        "gecko": {
-            "id": "phantomguard@anoncats.tops"
+    "web_accessible_resources": [
+        {
+            "resources": ["browser-polyfill.min.js"],
+            "matches": ["<all_urls>"]
         }
-    }
+    ]
 }

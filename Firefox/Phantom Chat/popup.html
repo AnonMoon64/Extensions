@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>My Popup</title>
+        <style>
+            button {
+                display: block;
+                width: 100%;
+                margin-bottom: 10px;
+            }
+
+            /* Default light theme */
+            body {
+                background-color: white;
+                color: black;
+            }
+
+            /* Dark theme */
+            @media (prefers-color-scheme: dark) {
+                body {
+                    background-color: black;
+                    color: white;
+                }
+            }
+
+            /* Center and resize h1 */
+            h1 {
+                text-align: center;
+                font-size: 24px;
+                color: #ff0000;
+            }
+
+        </style>
+    </head>
+    <body>
+        <h1>PhantomGuard</h1>
+        <button id="openOptions">Open Options</button>
+        <script src="popup.js"></script>
+    </body>
+</html>

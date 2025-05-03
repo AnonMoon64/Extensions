@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   updateDisplayBoxes();
   initializeToggles();
+  setupImportExport();
 });
 
 function updateDisplayBoxes() {
@@ -11,7 +12,7 @@ function updateDisplayBoxes() {
 
       updateBlocklist('domainBlocklist', blocklist, 'blocklist');
       updateBlocklist('trackerBlocklist', trackerBlocklist, 'trackerBlocklist');
-      updateBlocklist('elementBlocklist', blockedElements, 'blockedElements');
+      updateElementBlocklist('elementBlocklist', blockedElements);
   }).catch((error) => {
       console.error('Error loading lists:', error);
   });
@@ -22,7 +23,7 @@ function updateBlocklist(id, list, storageKey) {
   ul.innerHTML = '';
   for (let item of list) {
       let li = document.createElement('li');
-      li.textContent = storageKey === 'blockedElements' ? item.selector : item;
+      li.textContent = item;
       let button = document.createElement('button');
       button.textContent = 'Remove';
       button.addEventListener('click', () => {
@@ -35,6 +36,54 @@ function updateBlocklist(id, list, storageKey) {
           }
       });
       li.appendChild(button);
+      ul.appendChild(li);
+  }
+}
+
+function updateElementBlocklist(id, elements) {
+  let ul = document.getElementById(id);
+  ul.innerHTML = '';
+
+  // Group elements by hostname
+  const grouped = elements.reduce((acc, item) => {
+      if (!acc[item.hostname]) {
+          acc[item.hostname] = [];
+      }
+      acc[item.hostname].push(item.selector);
+      return acc;
+  }, {});
+
+  for (let hostname in grouped) {
+      let li = document.createElement('li');
+      let websiteSpan = document.createElement('span');
+      websiteSpan.textContent = hostname;
+      let removeWebsiteButton = document.createElement('button');
+      removeWebsiteButton.textContent = 'Remove Website';
+      removeWebsiteButton.addEventListener('click', () => {
+          let updatedElements = elements.filter(e => e.hostname !== hostname);
+          browser.storage.local.set({ blockedElements: updatedElements }).then(updateDisplayBoxes).catch((error) => {
+              console.error('Error removing website elements:', error);
+          });
+      });
+      li.appendChild(websiteSpan);
+      li.appendChild(removeWebsiteButton);
+
+      let subUl = document.createElement('ul');
+      grouped[hostname].forEach((selector) => {
+          let subLi = document.createElement('li');
+          subLi.textContent = selector;
+          let removeButton = document.createElement('button');
+          removeButton.textContent = 'Remove';
+          removeButton.addEventListener('click', () => {
+              let updatedElements = elements.filter(e => !(e.hostname === hostname && e.selector === selector));
+              browser.storage.local.set({ blockedElements: updatedElements }).then(updateDisplayBoxes).catch((error) => {
+                  console.error('Error removing element:', error);
+              });
+          });
+          subLi.appendChild(removeButton);
+          subUl.appendChild(subLi);
+      });
+      li.appendChild(subUl);
       ul.appendChild(li);
   }
 }
@@ -82,36 +131,52 @@ function initializeToggles() {
   });
 }
 
+function setupImportExport() {
+  document.getElementById('exportSettings').addEventListener('click', () => {
+      browser.storage.local.get(['blocklist', 'trackerBlocklist', 'blockedElements', 'usePredefinedBlocklist', 'usePredefinedTrackers']).then((data) => {
+          const json = JSON.stringify(data, null, 2);
+          const blob = new Blob([json], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'phantomguard-settings.json';
+          a.click();
+          URL.revokeObjectURL(url);
+          console.log('Settings exported:', data);
+      }).catch((error) => {
+          console.error('Error exporting settings:', error);
+      });
+  });
+
+  document.getElementById('importSettings').addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+              try {
+                  const data = JSON.parse(e.target.result);
+                  const validKeys = ['blocklist', 'trackerBlocklist', 'blockedElements', 'usePredefinedBlocklist', 'usePredefinedTrackers'];
+                  const filteredData = {};
+                  validKeys.forEach(key => {
+                      if (data[key] !== undefined) {
+                          filteredData[key] = data[key];
+                      }
+                  });
+                  browser.storage.local.set(filteredData).then(() => {
+                      updateDisplayBoxes();
+                      event.target.value = '';
+                      console.log('Settings imported:', filteredData);
+                  }).catch((error) => {
+                      console.error('Error importing settings:', error);
+                  });
+              } catch (error) {
+                  console.error('Invalid JSON file:', error);
+              }
+          };
+          reader.readAsText(file);
+      }
+  });
+}
+
 handleFormSubmission('domainForm', 'domainInput', 'blocklist');
 handleFormSubmission('trackerForm', 'trackerInput', 'trackerBlocklist');
-
-document.getElementById('blockListForm').addEventListener('submit', (event) => {
-  event.preventDefault();
-  let fileInput = document.getElementById('blockListInput');
-  let file = fileInput.files[0];
-  if (file) {
-      let reader = new FileReader();
-      reader.onload = (e) => {
-          let contents = e.target.result;
-          let lines = contents.split('\n').map(line => line.trim()).filter(line => line);
-          browser.storage.local.get(['blocklist']).then((result) => {
-              let blocklist = result.blocklist || [];
-              lines.forEach((line) => {
-                  if (!blocklist.includes(line)) {
-                      blocklist.push(line);
-                  }
-              });
-              browser.storage.local.set({ blocklist }).then(() => {
-                  fileInput.value = '';
-                  updateDisplayBoxes();
-                  console.log('Blocklist updated from file:', lines);
-              }).catch((error) => {
-                  console.error('Error saving blocklist from file:', error);
-              });
-          }).catch((error) => {
-              console.error('Error reading blocklist:', error);
-          });
-      };
-      reader.readAsText(file);
-  }
-});
